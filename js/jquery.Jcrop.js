@@ -28,6 +28,9 @@
  *
  * }}}
  */
+ 
+ // Modifed ADSoft - aspect + minsize variant (x1=xx y1=yy)
+ // checked divizion by zero && calculate new size rect
 
 (function ($) {
 
@@ -228,10 +231,10 @@
     function newSelection(e) //{{{
     {
       if (options.disabled) {
-        return;
+        return false;
       }
       if (!options.allowSelect) {
-        return;
+        return false;
       }
       btndown = true;
       docOffset = getPos($img);
@@ -526,22 +529,30 @@
       {
         if (!options.aspectRatio) {
           return getRect();
-        }
+        }		
         // This function could use some optimization I think...
         var aspect = options.aspectRatio,
             min_x = options.minSize[0] / xscale,
             
             
-            //min_y = options.minSize[1]/yscale,
+            min_y = options.minSize[1]/yscale,
             max_x = options.maxSize[0] / xscale,
             max_y = options.maxSize[1] / yscale,
             rw = x2 - x1,
             rh = y2 - y1,
             rwa = Math.abs(rw),
-            rha = Math.abs(rh),
-            real_ratio = rwa / rha,
+            rha = Math.abs(rh),				
+			real_ratio = 0,
             xx, yy, w, h;
-
+		
+		// ADSoft added - check division zero
+		if (rha!=0) {
+			real_ratio = rwa / rha;
+		} else {
+			real_ratio = aspect;
+		}
+		//
+		
         if (max_x === 0) {
           max_x = boundx * 10;
         }
@@ -550,7 +561,7 @@
         }
         if (real_ratio < aspect) {
           yy = y2;
-          w = rha * aspect;
+          w = rha * aspect;		  
           xx = rw < 0 ? x1 - w : w + x1;
 
           if (xx < 0) {
@@ -564,38 +575,47 @@
           }
         } else {
           xx = x2;
-          h = rwa / aspect;
+		  // Add ADSoft
+          if (rwa!=0) {
+			  h = rwa / aspect;
+		  } else {
+			  h = min_x / aspect;			  
+		  }
+		  //
           yy = rh < 0 ? y1 - h : y1 + h;
+			// check 0
+			w = (yy - y1!=0) ? Math.abs((yy - y1) * aspect) : min_y * aspect;
+			// end check
           if (yy < 0) {
-            yy = 0;
-            w = Math.abs((yy - y1) * aspect);
+            yy = 0;			
             xx = rw < 0 ? x1 - w : w + x1;
           } else if (yy > boundy) {
-            yy = boundy;
-            w = Math.abs(yy - y1) * aspect;
+            yy = boundy;		
             xx = rw < 0 ? x1 - w : w + x1;
-          }
+          }		
+		
         }
-
-        // Magic %-)
-        if (xx > x1) { // right side
+		
+        // Magic %-) 
+		// AD Soft  - Added "=" in magic 8-)
+        if (xx >= x1) { // right side
           if (xx - x1 < min_x) {
             xx = x1 + min_x;
           } else if (xx - x1 > max_x) {
             xx = x1 + max_x;
           }
-          if (yy > y1) {
+          if (yy >= y1) {
             yy = y1 + (xx - x1) / aspect;
           } else {
             yy = y1 - (xx - x1) / aspect;
           }
-        } else if (xx < x1) { // left side
+        } else if (xx <= x1) { // left side
           if (x1 - xx < min_x) {
             xx = x1 - min_x;
           } else if (x1 - xx > max_x) {
             xx = x1 - max_x;
           }
-          if (yy > y1) {
+          if (yy >= y1) {
             yy = y1 + (x1 - xx) / aspect;
           } else {
             yy = y1 - (x1 - xx) / aspect;
@@ -617,7 +637,7 @@
           y1 -= yy - boundy;
           yy = boundy;
         }
-
+		
         return makeObj(flipCoords(x1, y1, xx, yy));
       }
       //}}}
